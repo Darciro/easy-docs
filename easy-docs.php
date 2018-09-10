@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name:       Easy Docs
- * Plugin URI:        https://github.com/culturagovbr/
+ * Plugin URI:        https://github.com/darciro/
  * Description:       Adiciona um novo tipo de conteúdo denominado <strong>Documento</strong>, com suporte à categorias e shortcodes (Utilização: <strong>[easy-docs]</strong>; parâmetros disponíveis: <strong>category</strong>, <strong>items</strong>, <strong>all-items-label</strong>).
  * Version:           1.0.0
  * Author:            Ricardo Carvalho
- * Author URI:        https://github.com/culturagovbr/
+ * Author URI:        https://github.com/darciro/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  */
@@ -101,6 +101,12 @@ if( ! class_exists('EasyDocs') ) :
                     'labels'              => array(
                         'name'          => 'Documentos',
                         'singular_name' => 'Documento',
+                        'add_new'       => 'Novo documento',
+                        'add_new_item'  => 'Novo documento',
+                        'edit_item'     => 'Editar documento',
+                        'search_items'  => 'Buscar documento',
+                        'not_found'     => 'Nada encontrado',
+                        'not_found_in_trash'  => 'Nada encontrado',
                     ),
                     'public' => true,
                     'has_archive' => true,
@@ -115,7 +121,11 @@ if( ! class_exists('EasyDocs') ) :
                 'documents',
                 array(
                     'label' => 'Tipo de documento',
-                    'hierarchical' => true
+                    'hierarchical' => true,
+                    'labels' => array(
+                        'add_new_item' => 'Adicionar novo tipo',
+                        'search_items' => 'Buscar tipo de documento'
+                    )
                 )
             );
         }
@@ -262,24 +272,35 @@ if( ! class_exists('EasyDocs') ) :
          * @return string
          */
         public function add_document_to_content ($content){
-            $document_url = get_post_meta( get_the_ID(), '_document-url', true );
-            if( !$document_url ){
+            $documents_url = get_post_meta( get_the_ID(), '_document-url', false );
+            if( !$documents_url ){
                 return $content;
             } else {
-                $attachment = $this->get_attachment_id_by_url($document_url);
                 $doc_tax = get_the_terms( get_the_ID(), 'document-category' );
                 $attach_cat = $doc_tax[0]->name ? $doc_tax[0]->name : 'Anexo';
 
-                $document_box  = '<div class="easy-document-box card">';
-                $document_box .=    '<div class="card-body">';
-                $document_box .=        '<h5 class="card-title">'. $attachment->post_title .'</h5>';
-                $document_box .=        '<h6 class="card-subtitle mb-2 text-muted"><span class="dashicons dashicons-media-document"></span> '. $attach_cat .'</h6>';
-                $document_box .=        '<p class="card-text"><small>'. strftime('%d de %B de %Y', strtotime($attachment->post_date)) .'</small></p>';
-                $document_box .=        '<p class="card-text"><small>'. size_format( filesize( get_attached_file( $attachment->ID ) ) ) .'</small></p>';
-                $document_box .=        '<a href="'. $document_url .'" target="_blank" class="btn btn-primary">Download do arquivo</a>';
-                $document_box .=    '</div>';
-                $document_box .= '</div>';
-                return $content . $document_box;
+                ob_start(); ?>
+
+                <div class="easy-document-box">
+                    <div class="card">
+                        <h5 class="card-header"><span class="dashicons dashicons-media-document"></span> <?php echo $attach_cat; ?></h5>
+                        <div class="card-body">
+                            <?php
+                            for ($i = 0; $i < count($documents_url); $i++):
+                            $attachment = $this->get_attachment_id_by_url($documents_url[$i]); ?>
+                            <div class="<?php echo $i === 0 ? '' : 'b-top'; ?>">
+                                <h6 class="card-subtitle mb-2 text-muted">Anexos</h6>
+                                <h5 class="card-title"><?php echo $attachment->post_title; ?></h5>
+                                <p class="card-text"><small><?php echo strftime('%d de %B de %Y', strtotime($attachment->post_date)); ?></small></p>
+                                <p class="card-text"><small><?php echo size_format( filesize( get_attached_file( $attachment->ID ) ) ); ?></small></p>
+                                <a href="<?php echo $documents_url[$i]; ?>" class="btn btn-primary btn-sm" target="_blank">Download do arquivo</a>
+                            </div>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <?php return $content . ob_get_clean();
             }
         }
 
