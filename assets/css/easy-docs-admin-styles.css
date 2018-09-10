@@ -107,3 +107,8 @@
 .document-url-wrapper.no-doc #upload-doc-button {
     display: inline-block;
 }
+
+.type-documents .documents-attachment-list {
+    margin: 0;
+    list-style-type: disc;
+}

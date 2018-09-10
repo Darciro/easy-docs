@@ -35,8 +35,11 @@ if( ! class_exists('EasyDocs') ) :
             add_action( 'init', array( $this, 'cpt_docs' ) );
             add_action( 'add_meta_boxes', array( $this, 'easy_docs_add_meta_box' ) );
             add_action( 'save_post', array( $this, 'easy_docs_save_postdata' ) );
+            add_action('manage_posts_custom_column', array($this, 'documents_custom_columns'), 10, 2);
 
             add_filter( 'the_content', array( $this, 'add_document_to_content' ) );
+            add_filter( 'manage_documents_posts_columns', array($this, 'add_documents_columns' ) );
+            add_filter( 'manage_posts_columns', array($this, 'reorder_columns_in_documents_posts_list' ) );
 
             add_shortcode( 'easy-docs', array( $this, 'easy_docs_shortcode' ) );
         }
@@ -345,6 +348,71 @@ if( ! class_exists('EasyDocs') ) :
             }
 
             return ob_get_clean();
+        }
+
+        /**
+         * Add new columns to our custom post type
+         *
+         * @param $columns
+         * @return array
+         */
+        public function add_documents_columns($columns)
+        {
+            return array_merge($columns, array(
+                'author' => 'Autor',
+                'attachments' => 'Anexos'
+            ));
+        }
+
+        /**
+         * Fill custom columns with data
+         *
+         * @param $column
+         * @param $post_id
+         */
+        public function documents_custom_columns($column, $post_id)
+        {
+            switch ($column) {
+                case 'attachments':
+                    global $wpdb;
+                    $documents_url = get_post_meta( get_the_ID(), '_document-url', false );
+                    if( $documents_url ){
+                        echo '<ul class="documents-attachment-list">';
+                        foreach ( $documents_url as $doc_url ){
+                            $doc = $this->get_attachment_id_by_url($doc_url);
+                            echo '<li><a href="'. admin_url('/post.php?post='. $doc->ID .'&action=edit') .'"><small>'. $doc->post_title .'</small></a></li>';
+                        }
+                        echo '</ul>';
+                    } else {
+                        echo ' - ';
+                    }
+                    break;
+            }
+        }
+
+        /**
+         * Simple reorder for our custom columns
+         *
+         * @param $defaults
+         * @return array
+         */
+        function reorder_columns_in_documents_posts_list($defaults)
+        {
+            $new = array();
+            $attachments = $defaults['attachments'];
+            unset( $defaults['attachments'] );
+
+            foreach( $defaults as $key => $value ) {
+                if( $key == 'date' ) {
+                    $new['attachments'] = $attachments;
+                }
+                if( $key == 'date' ) {
+                    $new['author'] = $attachments;
+                }
+                $new[$key] = $value;
+            }
+
+            return $new;
         }
 
     }
